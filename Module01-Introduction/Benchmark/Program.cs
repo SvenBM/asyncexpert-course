@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 using BenchmarkDotNet.Running;
 
 namespace Dotnetos.AsyncExpert.Homework.Module01.Benchmark

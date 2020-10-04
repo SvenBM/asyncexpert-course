@@ -26,14 +26,34 @@ namespace Dotnetos.AsyncExpert.Homework.Module01.Benchmark
         [ArgumentsSource(nameof(Data))]
         public ulong RecursiveWithMemoization(ulong n)
         {
-            return 0;
+            var results = new ulong[n];
+            results[0] = 1;
+            results[1] = 1;
+            return RecMemo(n, results);
+        }
+
+        private ulong RecMemo(ulong n, ulong[] results)
+        {
+            if (results[n - 1] != 0)
+                return results[n - 1];
+
+            var res = RecMemo(n - 2, results) + RecMemo(n - 1, results);
+            results[n - 1] = res;
+            return res;
         }
         
         [Benchmark]
         [ArgumentsSource(nameof(Data))]
         public ulong Iterative(ulong n)
         {
-            return 0;
+            ulong preCurr = 1, curr = 1;
+            for (ulong i = 3; i <= n; i++)
+            {
+                var tmp = preCurr + curr;
+                preCurr = curr;
+                curr = tmp;
+            }
+            return curr;
         }
 
         public IEnumerable<ulong> Data()
