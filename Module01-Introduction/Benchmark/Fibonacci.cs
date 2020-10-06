@@ -29,15 +29,15 @@ namespace Dotnetos.AsyncExpert.Homework.Module01.Benchmark
             var results = new ulong[n];
             results[0] = 1;
             results[1] = 1;
-            return RecMemo(n, results);
+            return RecursiveMemo(n, results);
         }
 
-        private ulong RecMemo(ulong n, ulong[] results)
+        private ulong RecursiveMemo(ulong n, ulong[] results)
         {
             if (results[n - 1] != 0)
                 return results[n - 1];
 
-            var res = RecMemo(n - 2, results) + RecMemo(n - 1, results);
+            var res = RecursiveMemo(n - 2, results) + RecursiveMemo(n - 1, results);
             results[n - 1] = res;
             return res;
         }
