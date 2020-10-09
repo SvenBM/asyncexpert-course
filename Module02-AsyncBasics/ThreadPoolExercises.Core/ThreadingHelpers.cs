@@ -18,8 +18,7 @@ namespace ThreadPoolExercises.Core
                 {
                     for (var i = 0; i < repeats; i++)
                     {
-                        if (token.IsCancellationRequested)
-                            throw new OperationCanceledException();
+                        token.ThrowIfCancellationRequested();
                         action.Invoke();
                     }
                 }
@@ -47,8 +46,7 @@ namespace ThreadPoolExercises.Core
                 {
                     for (var i = 0; i < repeats; i++)
                     {
-                        if (token.IsCancellationRequested)
-                            throw new OperationCanceledException();
+                        token.ThrowIfCancellationRequested();
                         action.Invoke();
                     }
                 }
