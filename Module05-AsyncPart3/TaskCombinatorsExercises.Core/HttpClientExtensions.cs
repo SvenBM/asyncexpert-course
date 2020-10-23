@@ -25,13 +25,14 @@ namespace TaskCombinatorsExercises.Core
             var tcs = CancellationTokenSource.CreateLinkedTokenSource(token);
             var timeout = Task.Delay(millisecondsTimeout, tcs.Token);
 
-            var firstTaskToComplete = Task.WhenAny(urls.Select(u => httpClient.GetAsync(u, token)));
+            var firstTaskToComplete = Task.WhenAny(urls.Select(u => httpClient.GetAsync(u, tcs.Token)));
 
             var result = await Task.WhenAny(timeout, firstTaskToComplete);
+            tcs.Cancel();
+
             if (result == timeout)
                 throw new TaskCanceledException();
 
-            tcs.Cancel();
             var response = await await firstTaskToComplete;
             return await response.Content.ReadAsStringAsync();
         }
