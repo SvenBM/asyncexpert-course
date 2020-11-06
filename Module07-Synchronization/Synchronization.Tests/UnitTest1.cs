@@ -1,6 +1,9 @@
 using System;
 using System.Diagnostics;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Synchronization.Core;
 using Xunit;
 
 namespace Synchronization.Tests
@@ -28,6 +31,65 @@ namespace Synchronization.Tests
         }
 
         [Fact]
+        public async Task GivenExampleApp_WhenMultipleLocalExclusiveScopeInSameProcess_ThenSucceeds()
+        {
+            var tasks = Enumerable.Range(0, 5).Select(i => Task.Run(()=> 
+            {
+                using (new NamedExclusiveScope("name", false))
+                {
+                    Thread.Sleep(300);
+                    return DateTime.Now;
+                }
+            })).ToArray();
+
+            await Task.WhenAll(tasks);
+
+            var minFinishTime = tasks.Select(t => t.Result).Min();
+            var maxFinishTime = tasks.Select(t => t.Result).Max();
+            var duration = (maxFinishTime - minFinishTime).TotalMilliseconds;
+
+            Assert.True(duration >= 1200, "execution wasn't sequencial");
+        }
+
+        [Fact]
+        public async Task GivenExampleApp_WhenMultipleLocalExclusiveScopesWithUniqueNamesInSameProcess_ThenSucceeds()
+        {
+            var tasks = Enumerable.Range(0, 5).Select(i =>
+            {
+                var index = i;
+                return Task.Run(() =>
+                {
+                    using (new NamedExclusiveScope($"name {index}", false))
+                    {
+                        Thread.Sleep(300);
+                        return DateTime.Now;
+                    }
+                });
+            }).ToArray();
+
+            await Task.WhenAll(tasks);
+
+            var minFinishTime = tasks.Select(t => t.Result).Min();
+            var maxFinishTime = tasks.Select(t => t.Result).Max();
+            var duration = (maxFinishTime - minFinishTime).TotalMilliseconds;
+
+            Assert.True(duration < 1200, "execution wasn't parallel");
+        }
+
+        [Fact]
+        public async Task GivenExampleApp_WhenTwoLocalExclusiveScopesInDifferentProcesses_ThenSucceeds()
+        {
+            var scopeName = "someScopeName";
+            var path = @"..\..\..\..\..\Synchronization\bin\x64\Debug\netcoreapp3.1\Synchronization.exe";
+            var firstRunTask = RunProgramAsync(path, $"{scopeName} false");
+            var exception = await Record.ExceptionAsync(async () =>
+                await RunProgramAsync(path, $"{scopeName} false"));
+            await firstRunTask;
+
+            Assert.Null(exception);
+        }
+
+        [Fact]
         public async Task GivenExampleApp_WhenDoubleGlobalExclusiveScope_ThenThrows()
         {
             var scopeName = "someScopeName";
@@ -39,7 +101,7 @@ namespace Synchronization.Tests
 
             Assert.NotNull(exception);
             Assert.IsType<Exception>(exception);
-            Assert.StartsWith($"Unhandled exception. System.InvalidOperationException: Unable to get a global lock {scopeName}.", 
+            Assert.StartsWith($"Unhandled exception. System.InvalidOperationException: Unable to get a global lock {scopeName}.",
                 exception.Message);
 
         }

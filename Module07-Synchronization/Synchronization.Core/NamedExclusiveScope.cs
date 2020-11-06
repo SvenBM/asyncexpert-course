@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace Synchronization.Core
@@ -13,33 +14,38 @@ namespace Synchronization.Core
      */
     public class NamedExclusiveScope : IDisposable
     {
-        private readonly Mutex mutex;
-        private readonly Semaphore semaphore;
+        private readonly Semaphore globalSemaphore;
+        
+        private static readonly object LocalAccess = new object();
+        private static readonly Dictionary<string, Semaphore> LocalSemaphores = 
+            new Dictionary<string, Semaphore>();
+
+        private readonly Semaphore localSemaphore;
 
         public NamedExclusiveScope(string name, bool isSystemWide)
         {
             if(isSystemWide)
             {
-                if (Mutex.TryOpenExisting(name, out this.mutex))
-                    throw new InvalidOperationException($"Unable to get a global lock {name}.");
+                this.globalSemaphore = new Semaphore(0, 1, name, out var created);
+                if (created) return;
+                this.globalSemaphore = null;
+                throw new InvalidOperationException($"Unable to get a global lock {name}.");
+            }
 
-                this.mutex = new Mutex(false, name);
-                this.mutex.WaitOne();
-            }
-            else
+            lock (LocalAccess)
             {
-                if(!Semaphore.TryOpenExisting(name, out this.semaphore))
-                    this.semaphore = new Semaphore(1,1, name);
-                this.semaphore.WaitOne();
+                if(!LocalSemaphores.TryGetValue(name, out this.localSemaphore))
+                    LocalSemaphores.Add(name, this.localSemaphore = new Semaphore(1,1));
             }
+
+            this.localSemaphore.WaitOne();
         }
 
         public void Dispose()
         {
-            this.mutex?.ReleaseMutex();
-            this.mutex?.Dispose();
-            this.semaphore?.Release();
-            this.semaphore?.Dispose();
+            this.globalSemaphore?.Release();
+            this.globalSemaphore?.Dispose();
+            this.localSemaphore?.Release();
         }
     }
 }

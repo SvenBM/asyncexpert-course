@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Synchronization.Core;
 
 namespace Synchronization
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             var scopeName = "default";
             var isSystemWide = false;
@@ -18,7 +19,8 @@ namespace Synchronization
             using (new NamedExclusiveScope(scopeName, isSystemWide))
             {
                 Console.WriteLine("Hello world!");
-                Thread.Sleep(300);
+                //Thread.Sleep(300);
+                await Task.Delay(300);
             }
         }
     }
